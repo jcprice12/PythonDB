@@ -1,6 +1,7 @@
 import validator
+import queries
 
-# Make a purchase. Also a bunch of user prompts and some insert statements
+# Make a purchase.
 # Will ask user which store to buy an item (purchaseInput) from, quantity of item, and where they want the bill to be billed to
 ###########################################################################################################################
 def purchase(connection, custID, inID, purchaseInput):
