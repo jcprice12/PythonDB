@@ -1,4 +1,5 @@
 from mysql.connector import errorcode
+import createUser
 
 def printClothesInOrder(connection, order):
 	cursor = connection.cursor()
@@ -182,7 +183,131 @@ def updateCustomerAddress(connection, data):
         connection.commit()
         cursor.close()
 	return True
-		
+
+def updateCustomerCity(connection, data):
+	SQL = ("UPDATE JohmpsonClothing.Customer SET City = %s WHERE CustomerID = %s;")
+	cursor = connection.cursor()
+	try:
+		cursor.execute(SQL,data)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+	
+	connection.commit()
+	cursor.close()
+	return True
+
+def updateCustomerState(connection, data):
+	SQL = ("UPDATE JohmpsonClothing.Customer SET State = %s WHERE CustomerID = %s;")
+        cursor = connection.cursor()
+	try:
+        	cursor.execute(SQL,data)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+        connection.commit()
+        cursor.close()
+	return True
+
+def updateCustomerZip(connection, data):
+	SQL = ("UPDATE JohmpsonClothing.Customer SET Zip = %s WHERE CustomerID = %s;")
+        cursor = connection.cursor()
+	try:
+        	cursor.execute(SQL,data)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+        connection.commit()
+        cursor.close()
+	return True
+
+def updateCustomerPhone(connection, data):
+	SQL = ("UPDATE JohmpsonClothing.Customer SET Phone = %s WHERE CustomerID = %s;")
+        cursor = connection.cursor()
+	try:
+        	cursor.execute(SQL,data)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+        connection.commit()
+        cursor.close()
+	return True
+
+def updateCustomerEmail(connection, data):
+	SQL = ("UPDATE JohmpsonClothing.Customer SET Email = %s WHERE CustomerID = %s;")
+        cursor = connection.cursor()
+	try:
+        	cursor.execute(SQL,data)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+        connection.commit()
+        cursor.close()
+	return True
+
+def deleteAndAddCustomerCard(connection, data, cards):
+	cursor = connection.cursor()
+        SQL = (" DELETE FROM JohmpsonClothing.CreditCards WHERE CardNumber = %s;")
+
+	try:
+        	cursor.execute(SQL,data)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+	if len(cards) < 2:
+		cardSQL = (""" insert into JohmpsonClothing.CreditCards (CardNumber, SecurityCode, Customer, ValidDate, ExpirationDate)
+                        Values (%s,%s,%s,%s,%s);""")
+		print("You must now enter a new credit card")
+		cardInfo = createUser.addCard()
+		card_data = (cardInfo[0], cardInfo[1],custID, cardInfo[2], cardInfo[3])
+		try:
+			cursor.execute(cardSQL,card_data)
+		except mysql.connector.Error as err:
+			print("Something went wrong: {}".format(err))
+			connection.rollback()
+			cursor.close()
+			return None
+		connection.commit()
+        	cursor.close()
+		return True
+	else:
+		connection.commit()
+		cursor.close()
+		return True
+
+def addCustomerCard(connection, data):
+	cursor = connection.cursor()
+	cardSQL = (""" insert into JohmpsonClothing.CreditCards (CardNumber, SecurityCode, Customer, ValidDate, ExpirationDate)
+                        Values (%s,%s,%s,%s,%s);""")
+	try:
+        	ursor.execute(cardSQL,data)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+        connection.commit()
+        cursor.close()
+	return True
+
 		
 		
 
