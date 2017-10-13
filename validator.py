@@ -119,8 +119,6 @@ def validatePass(password):
 		return False
 
 
-print(validatePass("1234567"))
-
 
 
 

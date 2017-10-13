@@ -4,24 +4,28 @@ import queries
 
 # Make a purchase.
 # Will ask user which store to buy an item (purchaseInput) from, quantity of item, and where they want the bill to be billed to
-###########################################################################################################################
 def purchase(connection, custID, inID, purchaseInput):
 
     # get neccessary info
-    cursor = connection.cursor()
-    cardSQL = ("""      select CardNumber
-                        from CreditCards
-                        where Customer = %s;""")
-
     data_card = (custID,)
     data_purchase = (purchaseInput,)
 	stores = queries.getStoresWithItem(connection, data_purchase)
 	price = queries.getPriceItem(connection, data_purchase)
 	realPrice = price[0]
+	amount = 0
+	billingAddress = ""
+	billingCity = ""
+	billingState = ""
+	billingZip = ""
+	quant = 0
+	cardInput = ""
+	storeSelection = -1
 
     # If there are stores with that item in stock, continue
     if (stores is not None) and (price is not None):
+		storeIds = []
         for (StoreId, Address, Inventory) in stores:
+			storeIds.append(str(StoreId))
             print("{}, {}, {} ".format(StoreId, Address, Inventory))
 
         # SELECT STORE
@@ -29,7 +33,7 @@ def purchase(connection, custID, inID, purchaseInput):
         while isValid == False:         
             storeSelection = raw_input("Enter the Store's ID number to select a store to buy your item from:\n")
             if storeSelection.isdigit() == True:
-                if int(storeSelection) > 0 and int(storeSelection) < (len(stores)+1):
+                if storeSelection in storeIds:
                     isValid = True
                 else:
                     print("Incorrect input")
@@ -46,32 +50,35 @@ def purchase(connection, custID, inID, purchaseInput):
             except:
                 print("Incorrect Input")
 
-        # GET BILLING INFO
+		# GET BILLING ADDRESS LINE
         isValid = False
         while isValid == False:    
             billingAddress = raw_input("Please enter the billing address:\n")
-            if len(billingAddress) > 0 and len(billingAddress) < 56:
+            if len(billingAddress) > 0 and len(billingAddress) < 56 and validator.validateStr(billingAddress):
                 isValid = True
             else:
                 print("Please enter a valid address")
 
+		# GET BILLING CITY
         isValid = False
         while isValid == False:       
             billingCity = raw_input("Please enter the city this purchase will be billed to:\n")
-            if len(billingCity) > 0 and len(billingCity) < 46:
+            if len(billingCity) > 0 and len(billingCity) < 46 and validator.validateStr(billingCity):
                 isValid = True
             else:
                 print("Please enter a valid city")
-                
+        
+		# GET BILLING STATE        
         isValid = False
         while isValid == False:    
             billingState = raw_input("Please enter the state (abbreviated) this purchase will be billed to:\n")
-	    billingState = validator.validateState(billingState)
+	    	billingState = validator.validateState(billingState)
             if billingState is not None:
                 isValid = True
             else:
                 print("Please enter a valid state (must be abbreviated. Example: FL)")
 
+		# GET BILLING ZIP
         isValid = False
         while isValid == False:
             billingZip = raw_input("And finally the zip code:\n")
@@ -79,13 +86,13 @@ def purchase(connection, custID, inID, purchaseInput):
                 isValid = True
             else:
                 print("Please enter a valid zip code. Format is: 'xxxxx'. 'x' is any number between 0 and 9.")       
-        # END GET BILLING INFO ###################################################################################################
 
+		# SELECT CARD TO USE
         print("Credit Cards")
-        cursor = connection.cursor()
-        cursor.execute(cardSQL,data_card)
-        creditCards = cursor.fetchall()
-        cursor.close()
+        creditCards = queries.getCustomerCards(connection, data_card)
+		if creditCards is None:
+			print("You do not have any credit cards on file. Please add one")
+			return 
         i = 0
         print("{0:6}{1:32}".format("Row", "Card Number"))
         for (CardNumber,) in creditCards:
@@ -100,48 +107,18 @@ def purchase(connection, custID, inID, purchaseInput):
             else:
                 print("Incorrect card number")              
         
-        # GET A FINAL CONFIRMATION AND EXECUTE #########################################################################
+        # GET A FINAL CONFIRMATION AND EXECUTE
         confirmation = raw_input("Are you sure you would like to make this purchase? (y/n)\n")
         if confirmation == "y":
-            cursor = connection.cursor()
-            cursor.execute("""  select max(InvoiceID)
-                                from Invoice;""")
-            maxID = cursor.fetchone()# GET LATEST INVOICE ID
-            cursor.close()
-            invoiceLineSQL = (  "INSERT INTO JohmpsonClothing.InvoiceLine "
-                                "(InvoiceID, ClothingID, Quantity, SoldFor, Credit) "
-                                "VALUES (%s, %s, %s, %s, %s);")
-            inventorySQL = (    "UPDATE JohmpsonClothing.StoresClothing SET Inventory = Inventory - %s "
-                                "WHERE StoreID = %s and ClothingID = %s;")
-            data_invoiceLine = (inID, purchaseInput, quant, amount, card_input)
-            data_inventory = (quant,storeSelection,purchaseInput)
-            # IF THIS IS THE FIRST PURCHASE MADE WITH THIS INVOICE ID
-            if maxID[0] < inID:
-                yearMonthDay = date.today()
-                cursor = connection.cursor()
-                invoiceSQL = (  "INSERT INTO JohmpsonClothing.Invoice "
-                                "(InvoiceID, CustomerID, Total, BillingAddress, BillingCity, BillingState, BillingZip, DateOfInvoice) "
-                                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s);")
-                data_invoice = (inID, custID, amount, billingAddress, billingCity, billingState, billingZip, yearMonthDay)
-                cursor.execute(invoiceSQL,data_invoice)
-                cursor.execute(invoiceLineSQL, data_invoiceLine)
-                cursor.execute(inventorySQL, data_inventory)
-                connection.commit()
-                print("Your order has been successfully placed")
-                cursor.close()
-            # IF YOU'VE MADE A PURCHASE WITH THIS INVOICE ID BEFORE
-            else:
-                yearMonthDay = date.today()
-                cursor = connection.cursor()
-                invoiceUpdateSQL = (    "UPDATE JohmpsonClothing.Invoice SET Total = Total + %s, DateOfInvoice = %s "
-                                        "WHERE InvoiceID = %s;")
-                data_updateInvoice = (amount,yearMonthDay,inID)
-                cursor.execute(invoiceUpdateSQL, data_updateInvoice)
-                cursor.execute(invoiceLineSQL, data_invoiceLine)
-                cursor.execute(inventorySQL, data_inventory)
-                connection.commit()
-                print("Your order has been successfully placed")
-                cursor.close()
+			yearMonthDay = date.today()
+			data_invoice = (custID, billingAddress, billingCity, billingState, billingZip, yearMonthDay)
+			data_quantity = (purchaseInput, storeSelection)
+			lineInfo = [purchaseInput, quant, amount, card_input]
+			invoiceID = queries.placeOrder(connection, data_quantity, data_invoice, lineInfo)
+			if invoiceID is not None:
+				print("Your order has been placed. Your invoice ID is: " + str(invoiceID))
+			else:
+				print("Could not place order")
         else:
             print("Very well. Your order has been cancelled")
     else:

@@ -114,7 +114,7 @@ def getCustomerCards(connection, data_customer):
 	try:
 		cardSQL = ("""  select CardNumber
 		                from JohmpsonClothing.CreditCards
-		                where Customer = """ + str(custID) + """;""")
+		                where Customer = %s;""")
 		cursor.execute(SQL, data_customer)
 		cards = cursor.fetchall()
 		cursor.close()
@@ -297,7 +297,7 @@ def addCustomerCard(connection, data):
 	cardSQL = (""" insert into JohmpsonClothing.CreditCards (CardNumber, SecurityCode, Customer, ValidDate, ExpirationDate)
                         Values (%s,%s,%s,%s,%s);""")
 	try:
-        	ursor.execute(cardSQL,data)
+        	cursor.execute(cardSQL,data)
 	except mysql.connector.Error as err:
 		print("Something went wrong: {}".format(err))
 		connection.rollback()
@@ -307,6 +307,54 @@ def addCustomerCard(connection, data):
         connection.commit()
         cursor.close()
 	return True
+
+def placeOrder(connection, data_quantity, data_invoice, lineInfo):
+	cursor = connection.cursor()
+	determineQuantitySQL = (""" select Inventory 
+					from StoresClothing 
+					where ClothingID = %s and StoreID = %s""")
+	invoiceSQL = (""" insert into JohmpsonClothing.Invoice (CustomerID, BillingAddress, BillingCity, BillingState, BillingZip, DateOfInvoice)
+				values (%s,%s,%s,%s,%s,%s)""")
+	invoiceLineSQL = ("""insert into JohmpsonClothing.InvoiceLine (InvoiceID, ClothingID, Quantity, SoldFor, Credit)""")
+
+	inventory = 0
+	try:
+		cursor.execute(determineQuantitySQL, data_quantity)
+		inventory = cursor.fetchone()
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+	if inventory < lineInfo[2]:
+		print("There is not enough inventory in the store to place this order")
+		return None
+
+
+	try:
+		cursor.execute(invoiceSQL, data_invoice)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+	invoiceId = cursor.lastrowid
+	data_line = (invoiceId, lineInfo[0], lineInfo[1], lineInfo[2], lineInfo[3])
+
+	try:
+		cursor.execute(invoiceLineSQL, data_line)
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None
+
+	connection.commit()
+        cursor.close()
+	return invoiceId
+	
 
 		
 		
