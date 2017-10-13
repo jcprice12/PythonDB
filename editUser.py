@@ -1,28 +1,113 @@
 import validator
 import createUser
+import queries
+
+def editFirstName(connection, custID, compare):
+	isValid = False
+    while isValid == False:      
+        first = raw_input("Please enter your new first name:\n")
+        if len(first) > 0 and len(first) < 46 and validator.validateStr(first):
+            isValid = True
+		else:
+			print("Invalid Name")
+
+    isValid = False
+    while isValid == False:
+        secret = raw_input("Enter your password")
+        if secret == compare:
+            isValid = True
+        else:
+            print("Sorry, wrong password")
+
+	data = (first,custID)
+	if queries.updateCustomerFirstName(connection, data) is None:
+		print("Unable to update your name. Please try again")
+
+def editLastName(connection, custID, compare):
+    isValid = False
+    while isValid == False:     
+        last = raw_input("Please enter your last name:\n")
+        if len(last) > 0 and len(last) < 46 and validator.validateStr(last):
+            isValid = True
+        else:
+            print("Invalid name")
+
+    isValid = False
+    while isValid == False:
+        secret = raw_input("Enter your password")
+		if secret == compare:
+            isValid = True
+        else:
+            print("Sorry, wrong password")
+
+	data = (last, custID)
+	if queries.updateCustomerLastName(connection, data) is None:
+		print("Unable to update your name. Please try again")
+
+def editPassword(connection, custID, compare):
+	isValid = False
+    while isValid == False:
+        password = raw_input("\nPlease create a new password:\n")
+        if validator.validatePass(password):
+            isValid = True
+        else:
+            print("Passwords must be longer than 5 characters and contain a number")
+
+    isValid = False
+    while isValid == False:
+        secret = raw_input("Enter your old password for verification")
+        if secret == compare:
+            isValid = True
+        else:
+            print("Sorry, wrong password")
+
+	data = (password,custID) 
+	if queries.updateCustomerPassword(connection, data) is None:
+		print("Unable to update your password. Please try again")
+
+def editAddress(connection, custID, compare):
+	isValid = False
+    while isValid == False:    
+        addr = raw_input("Please enter your new address:\n")
+        if len(addr) > 0 and len(addr) < 56 and validator.validateStr(addr):
+            isValid = True
+        else:
+            print("Please enter a valid address")
+
+    isValid = False
+    while isValid == False:
+        secret = raw_input("Enter your password")
+        if secret == compare:
+            isValid = True
+        else:
+            print("Sorry, wrong password")
+
+	data = (addr,custID)
+	if queries.updateCustomerAddress(connection, data) is None:
+		print("Unable to update address. Please try again")
+        
 
 #Function will ask what a customer wants to edit (update in the DB) and then prompt
 #that customer to add new info to update columns in tables. This function also displays a customer's current info.
-###########################################################################################################################
 def editAccount(connection, custID):
     customerInteracting = True
     while customerInteracting == True:
 
-        ########################################DISPLAY INFO##########################################################
+        #DISPLAY INFO
         print("\nYour account information (password not shown) is:")
-        cursor = connection.cursor()
-        SQL = ("""  select CustomerID, FirstName, LastName, Address, City, State, Zip, Phone, Email, Password
-                    from JohmpsonClothing.Customer
-                    where CustomerID = """ + str(custID) + """;""")
-        cardSQL = ("""  select CardNumber
-                        from JohmpsonClothing.CreditCards
-                        where Customer = """ + str(custID) + """;""")
+
         data = (str(custID))
-        cursor.execute( SQL)
-        customer = cursor.fetchone()
-        cursor.execute(cardSQL)
-        cards = cursor.fetchall()
-        cursor.close()
+		data_customer = (data,)
+		customer = queries.getCustomer(connection,data_customer)
+	    if customer is None:
+			print("Customer not found with ID: " + data)
+			return
+
+		cards = queries.getCustomerCards(connection, data_customer)
+		if cards is None:
+			print("Customer credit cards could not be found with customer ID: " + data)
+			return
+
         compare = customer[9]
         print("User ID: " + str(customer[0]))
         print("FirstName: " + customer[1])
@@ -39,133 +124,31 @@ def editAccount(connection, custID):
             print("{}".format(CardNumber))
 
 
-        ####################################### USER INPUT SECTION ###################################################
-        #                           PASSWORDS MUST BE ENTERED FOR EVERYTHING                                         #
+        #USER INPUT SECTION
         print("""\nWhat would you like to edit? Note, you cannot change your User ID. You cannot edit your credit card info. You may only delete a credit card or add a new one. Type 'back' to go back""")
         print("First Name (0)\nLast Name (1)\nPassword (2)\nAddress (3)\nCity (4)\nState (5)\nZip Code (6)\nPhone Number (7)\nEmail (8)\nDelete Card (9)\nAdd Card (10)")
         userInput = raw_input()
+
 
         #exit function
         if(userInput == "back"):
             customerInteracting = False
 
-        # EDIT FIRST NAME #########################################    
+        # EDIT FIRST NAME   
         elif(userInput == "0"):
-            isValid = False
-            while isValid == False:      
-                first = raw_input("Please enter your new first name:\n")
-                if len(first) > 0 and len(first) < 46:
-                    isValid = True
-                if "'" in first or '"' in first or ";" in first or "(" in first or ")" in first:
-                    isValid = False
-                if isValid == False:
-                    print("Invalid name")
-            isValid = False
-            correctPassword = False
-            while isValid == False:
-                secret = raw_input("Enter your password or type '1' to go back:\n")
-                if secret == "1":
-                    isValid = True
-                elif secret == compare:
-                    isValid = True
-                    correctPassword = True
-                else:
-                    print("Sorry, wrong password")
-            if correctPassword == True:
-                SQL = ("UPDATE JohmpsonClothing.Customer SET FirstName = %s WHERE CustomerID = %s;")
-                data = (first,custID)
-                cursor = connection.cursor()
-                cursor.execute(SQL,data)
-                connection.commit()
-                cursor.close()
+            editFirstName(connection, custID, compare)
 
-        # EDIT LAST NAME ############################################    
+        # EDIT LAST NAME   
         elif(userInput == "1"):
-            isValid = False
-            while isValid == False:     
-                last = raw_input("Please enter your last name:\n")
-                if len(last) > 0 and len(last) < 46:
-                    isValid = True
-                if "'" in last or '"' in last or ";" in last or "(" in last or ")" in last:
-                    isValid = False
-                if isValid == False:
-                    print("Invalid name")
-            isValid = False
-            correctPassword = False
-            while isValid == False:
-                secret = raw_input("Enter your password or type '1' to go back:\n")
-                if secret == "1":
-                    isValid = True
-                elif secret == compare:
-                    isValid = True
-                    correctPassword = True
-                else:
-                    print("Sorry, wrong password")
-            if correctPassword == True:
-                SQL = ("UPDATE JohmpsonClothing.Customer SET LastName = %s WHERE CustomerID = %s;")
-                data = (last,custID)
-                cursor = connection.cursor()
-                cursor.execute(SQL,data)
-                connection.commit()
-                cursor.close()
+            editLastName(connection, custID, compare)
 
-        # EDIT PASSWORD ################################################
+        # EDIT PASSWORD
         elif(userInput == "2"):
-            isValid = False
-            while isValid == False:
-                password = raw_input("\nPlease create a new password:\n")
-                if validator.validatePass(password):
-                    isValid = True
-                else:
-                    print("Passwords must be longer than 5 characters and contain a number")
-            isValid = False
-            correctPassword = False
-            while isValid == False:
-                secret = raw_input("Enter your old password for verification or type '1' to go back:\n")
-                if secret == "1":
-                    isValid = True
-                elif secret == compare:
-                    isValid = True
-                    correctPassword = True
-                else:
-                    print("Sorry, wrong password")
-            if correctPassword == True:
-                SQL = ("UPDATE JohmpsonClothing.Customer SET Password = %s WHERE CustomerID = %s;")
-                data = (password,custID)
-                cursor = connection.cursor()
-                cursor.execute(SQL,data)
-                connection.commit()
-                cursor.close()
+         	editPassword(connection, custID, compare)   
 
-        # EDIT ADDRESS #################################################    
+        # EDIT ADDRESS   
         elif(userInput == "3"):
-            isValid = False
-            while isValid == False:    
-                addr = raw_input("Please enter your new address:\n")
-                if len(addr) > 0 and len(addr) < 56:
-                    isValid = True
-                if "'" in addr or '"' in addr or ";" in addr or "(" in addr or ")" in addr:
-                    isValid = False
-                if isValid == False:
-                    print("Please enter a valid address")
-            isValid = False
-            correctPassword = False
-            while isValid == False:
-                secret = raw_input("Enter your password or type '1' to go back:\n")
-                if secret == "1":
-                    isValid = True
-                elif secret == compare:
-                    isValid = True
-                    correctPassword = True
-                else:
-                    print("Sorry, wrong password")
-            if correctPassword == True:
-                SQL = ("UPDATE JohmpsonClothing.Customer SET Address = %s WHERE CustomerID = %s;")
-                data = (addr,custID)
-                cursor = connection.cursor()
-                cursor.execute(SQL,data)
-                connection.commit()
-                cursor.close()
+            editAddress(connection, custID, compare)
 
         # EDIT CITY ######################################################
         elif(userInput == "4"):

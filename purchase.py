@@ -1,37 +1,30 @@
 import validator
 import queries
+	
 
 # Make a purchase.
 # Will ask user which store to buy an item (purchaseInput) from, quantity of item, and where they want the bill to be billed to
 ###########################################################################################################################
 def purchase(connection, custID, inID, purchaseInput):
 
-    # get neccessary info ###########################
+    # get neccessary info
     cursor = connection.cursor()
-    storesSQL = ("""    select StoreId, Address, Inventory
-                        from JohmpsonClothing.StoresClothing natural join JohmpsonClothing.Stores
-                        where ClothingID = %s and Inventory > 0;""")
-    priceSQL = ("""     select Price
-                        from JohmpsonClothing.Clothing
-                        where ClothingID = %s;""")
     cardSQL = ("""      select CardNumber
                         from CreditCards
                         where Customer = %s;""")
+
     data_card = (custID,)
     data_purchase = (purchaseInput,)
-    cursor.execute(storesSQL,data_purchase)
-    stores = cursor.fetchall()
-    cursor.execute(priceSQL,data_purchase)
-    price = cursor.fetchone()
-    realPrice = price[0]
-    cursor.close()
+	stores = queries.getStoresWithItem(connection, data_purchase)
+	price = queries.getPriceItem(connection, data_purchase)
+	realPrice = price[0]
 
     # If there are stores with that item in stock, continue
-    if stores != None:
+    if (stores is not None) and (price is not None):
         for (StoreId, Address, Inventory) in stores:
             print("{}, {}, {} ".format(StoreId, Address, Inventory))
 
-        # SELECT STORE ####################################
+        # SELECT STORE
         isValid = False
         while isValid == False:         
             storeSelection = raw_input("Enter the Store's ID number to select a store to buy your item from:\n")
@@ -43,7 +36,7 @@ def purchase(connection, custID, inID, purchaseInput):
             else:
                 print("Incorrect input")
 
-        # GET QUANTITY #######################################
+        # GET QUANTITY
         isValid = False
         while isValid == False:
             quant = raw_input("How many of this item would you like to buy?\n")
@@ -53,7 +46,7 @@ def purchase(connection, custID, inID, purchaseInput):
             except:
                 print("Incorrect Input")
 
-        # GET BILLING INFO ####################################################################################################
+        # GET BILLING INFO
         isValid = False
         while isValid == False:    
             billingAddress = raw_input("Please enter the billing address:\n")
