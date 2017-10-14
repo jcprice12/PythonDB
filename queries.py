@@ -1,43 +1,46 @@
+import mysql.connector
 from mysql.connector import errorcode
 import createUser
 
 def printClothesInOrder(connection, order):
 	cursor = connection.cursor()
 	try:
-		data = (order)
+		data = (order,)
 	    	cursor.execute("""  select *
 		                from Clothing
-		                order by %s;""", data)
+		                order by %s""", data)
 	    	clothing = cursor.fetchall()
 	    	cursor.close()
 	    	print("{0:15}{1:20}{2:20}{3:8}{4:10}{5:15}".format("Clothing ID", "Name", "Type", "Season", "Price", "Material"))
 	    	for (ClothingID, Name, Type, Season, Price, Material) in clothing:
 	    		print("{0:15}{1:20}{2:20}{3:8}${4:10}{5:15}".format(str(ClothingID), Name, Type, Season, str(Price), Material))
 		return True
-	except:
-		print("Error occurred printing clothes")
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		cursor.close()
 		return False
 
 def selectArticle(connection,articleId):
 	cursor = connection.cursor()
 	try:
-		SQL = ("  SELECT ClothingID "
-		            "FROM Clothing "
-		            "WHERE ClothingID = %s;")
-		data = (articleId)
-		cursor.execute(SQL,data)
+		SQL = (""" SELECT ClothingID 
+		             FROM Clothing 
+		             WHERE ClothingID = %s""")
+		data = (articleId,)
+		cursor.execute(SQL, data)
 		article = cursor.fetchone()
 		cursor.close()
 		return article
-	except:
-		print("Error occurred retrieving article")
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		cursor.close()
 		return None
 
 def insertCustomer(connection, data_customer, cardInfo):
 	SQL = ("""  Insert into JohmpsonClothing.Customer (Password, LastName, FirstName, Address, City, State, Zip, Phone, Email)
-        		VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);""")
-	cardSQL = (""" insert into JohmpsonClothing.CreditCards (CardNumber, SecurityCode, Customer, ValidDate, ExpirationDate)
-        		Values (%s,%s,%s,%s,%s);""")
+        		VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""")
+	cardSQL = (""" insert into JohmpsonClothing.CreditCards (CardNumber, SecurityCode, Customer, ExpirationDate)
+        		Values (%s,%s,%s,%s)""")
 	
 	cursor = connection.cursor()
 	try:	
@@ -68,7 +71,7 @@ def getStoresWithItem(connection, data_purchase):
 	try:
 		storesSQL = ("""select StoreId, Address, Inventory
                 		from JohmpsonClothing.StoresClothing natural join JohmpsonClothing.Stores
-                        	where ClothingID = %s and Inventory > 0;
+                        	where ClothingID = %s and Inventory > 0
 				order by StoreId asc""")
 		cursor.execute(storesSQL,data_purchase)
 		stores = cursor.fetchall()
@@ -84,7 +87,7 @@ def getPriceItem(connection, data_purchase):
 	try:
 		priceSQL = (""" select Price
                         	from JohmpsonClothing.Clothing
-                        	where ClothingID = %s;""")
+                        	where ClothingID = %s""")
 		cursor.execute(priceSQL, data_purchase)
 		price = cursor.fetchone()
 		cursor.close()
@@ -99,7 +102,7 @@ def getCustomer(connection, data_customer):
 	try:
 		SQL = ("""  select CustomerID, FirstName, LastName, Address, City, State, Zip, Phone, Email, Password
 		            from JohmpsonClothing.Customer
-		            where CustomerID = %s;""")
+		            where CustomerID = %s""")
 		cursor.execute(SQL, data_customer)
 		customer = cursor.fetchone()
 		cursor.close()
@@ -114,8 +117,8 @@ def getCustomerCards(connection, data_customer):
 	try:
 		cardSQL = ("""  select CardNumber
 		                from JohmpsonClothing.CreditCards
-		                where Customer = %s;""")
-		cursor.execute(SQL, data_customer)
+		                where Customer = %s""")
+		cursor.execute(cardSQL, data_customer)
 		cards = cursor.fetchall()
 		cursor.close()
 		return cards
@@ -126,7 +129,7 @@ def getCustomerCards(connection, data_customer):
 
 def updateCustomerFirstName(connection, data):
 	cursor = connection.cursor()
-	SQL = ("UPDATE JohmpsonClothing.Customer SET FirstName = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET FirstName = %s WHERE CustomerID = %s")
 	try:
 		cursor.execute(SQL, data)
 	except mysql.connector.Error as err:
@@ -140,7 +143,7 @@ def updateCustomerFirstName(connection, data):
 	return True
 
 def updateCustomerLastName(connection, data):
-	SQL = ("UPDATE JohmpsonClothing.Customer SET LastName = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET LastName = %s WHERE CustomerID = %s")
 	cursor = connection.cursor()
 	try:
 		cursor.execute(SQL,data)
@@ -155,7 +158,7 @@ def updateCustomerLastName(connection, data):
 	return True
 
 def updateCustomerPassword(connection, data):
-	SQL = ("UPDATE JohmpsonClothing.Customer SET Password = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET Password = %s WHERE CustomerID = %s")
         cursor = connection.cursor()
 	try:
         	cursor.execute(SQL,data)
@@ -170,7 +173,7 @@ def updateCustomerPassword(connection, data):
 	return True
 
 def updateCustomerAddress(connection, data):
-	SQL = ("UPDATE JohmpsonClothing.Customer SET Address = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET Address = %s WHERE CustomerID = %s")
         cursor = connection.cursor()
 	try:
         	cursor.execute(SQL,data)
@@ -185,7 +188,7 @@ def updateCustomerAddress(connection, data):
 	return True
 
 def updateCustomerCity(connection, data):
-	SQL = ("UPDATE JohmpsonClothing.Customer SET City = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET City = %s WHERE CustomerID = %s")
 	cursor = connection.cursor()
 	try:
 		cursor.execute(SQL,data)
@@ -200,7 +203,7 @@ def updateCustomerCity(connection, data):
 	return True
 
 def updateCustomerState(connection, data):
-	SQL = ("UPDATE JohmpsonClothing.Customer SET State = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET State = %s WHERE CustomerID = %s")
         cursor = connection.cursor()
 	try:
         	cursor.execute(SQL,data)
@@ -215,7 +218,7 @@ def updateCustomerState(connection, data):
 	return True
 
 def updateCustomerZip(connection, data):
-	SQL = ("UPDATE JohmpsonClothing.Customer SET Zip = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET Zip = %s WHERE CustomerID = %s")
         cursor = connection.cursor()
 	try:
         	cursor.execute(SQL,data)
@@ -230,7 +233,7 @@ def updateCustomerZip(connection, data):
 	return True
 
 def updateCustomerPhone(connection, data):
-	SQL = ("UPDATE JohmpsonClothing.Customer SET Phone = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET Phone = %s WHERE CustomerID = %s")
         cursor = connection.cursor()
 	try:
         	cursor.execute(SQL,data)
@@ -245,7 +248,7 @@ def updateCustomerPhone(connection, data):
 	return True
 
 def updateCustomerEmail(connection, data):
-	SQL = ("UPDATE JohmpsonClothing.Customer SET Email = %s WHERE CustomerID = %s;")
+	SQL = ("UPDATE JohmpsonClothing.Customer SET Email = %s WHERE CustomerID = %s")
         cursor = connection.cursor()
 	try:
         	cursor.execute(SQL,data)
@@ -261,7 +264,7 @@ def updateCustomerEmail(connection, data):
 
 def deleteAndAddCustomerCard(connection, data, cards):
 	cursor = connection.cursor()
-        SQL = (" DELETE FROM JohmpsonClothing.CreditCards WHERE CardNumber = %s;")
+        SQL = (" DELETE FROM JohmpsonClothing.CreditCards WHERE CardNumber = %s")
 
 	try:
         	cursor.execute(SQL,data)
@@ -273,7 +276,7 @@ def deleteAndAddCustomerCard(connection, data, cards):
 
 	if len(cards) < 2:
 		cardSQL = (""" insert into JohmpsonClothing.CreditCards (CardNumber, SecurityCode, Customer, ValidDate, ExpirationDate)
-                        Values (%s,%s,%s,%s,%s);""")
+                        Values (%s,%s,%s,%s,%s)""")
 		print("You must now enter a new credit card")
 		cardInfo = createUser.addCard()
 		card_data = (cardInfo[0], cardInfo[1],custID, cardInfo[2], cardInfo[3])
@@ -295,7 +298,7 @@ def deleteAndAddCustomerCard(connection, data, cards):
 def addCustomerCard(connection, data):
 	cursor = connection.cursor()
 	cardSQL = (""" insert into JohmpsonClothing.CreditCards (CardNumber, SecurityCode, Customer, ValidDate, ExpirationDate)
-                        Values (%s,%s,%s,%s,%s);""")
+                        Values (%s,%s,%s,%s,%s)""")
 	try:
         	cursor.execute(cardSQL,data)
 	except mysql.connector.Error as err:
@@ -315,9 +318,11 @@ def placeOrder(connection, data_quantity, data_invoice, lineInfo):
 					where ClothingID = %s and StoreID = %s""")
 	invoiceSQL = (""" insert into JohmpsonClothing.Invoice (CustomerID, BillingAddress, BillingCity, BillingState, BillingZip, DateOfInvoice)
 				values (%s,%s,%s,%s,%s,%s)""")
-	invoiceLineSQL = ("""insert into JohmpsonClothing.InvoiceLine (InvoiceID, ClothingID, Quantity, SoldFor, Credit)""")
+	invoiceLineSQL = ("""insert into JohmpsonClothing.InvoiceLine (InvoiceID, ClothingID, Quantity, SoldFor, Credit)
+				values (%s,%s,%s,%s,%s)""")
 
 	inventory = 0
+	print("Hey")
 	try:
 		cursor.execute(determineQuantitySQL, data_quantity)
 		inventory = cursor.fetchone()
@@ -330,6 +335,7 @@ def placeOrder(connection, data_quantity, data_invoice, lineInfo):
 	if inventory < lineInfo[2]:
 		print("There is not enough inventory in the store to place this order")
 		return None
+	print("You")
 
 
 	try:
@@ -342,6 +348,8 @@ def placeOrder(connection, data_quantity, data_invoice, lineInfo):
 
 	invoiceId = cursor.lastrowid
 	data_line = (invoiceId, lineInfo[0], lineInfo[1], lineInfo[2], lineInfo[3])
+
+	print("Stuff")
 
 	try:
 		cursor.execute(invoiceLineSQL, data_line)
