@@ -1,47 +1,19 @@
-import validator
-import queries
+from passlib.hash import pbkdf2_sha256
+import utils.validator as validator
+import utils.queries as queries
+import card
 
-#This function does not add a card in the database. It is a series of prompts that collects valid credit card info and puts it in a list called array
-#This function returns the array if everything is valid. It will always return an array bcause it will only accept valid info
-###########################################################################################################################
-def addCard():
-    isValid = False
-    while isValid == False:
-        cardNumber = raw_input("Please enter your Credit Card Number (5522890707555845 is an example):\n")
-        if validator.validateCreditCard(cardNumber):
-            isValid = True
-        else:
-            print("Please enter a valid credit card number")
-
-    isValid = False
-    while isValid == False:
-        cardSecurity = raw_input("Please enter the security code on the back of your card:\n")
-        if validator.validateSecurityCode(cardSecurity):
-            isValid = True
-        else:
-            print("Please enter a valid security code")
-
-    isValid = False
-    while isValid == False:
-        endDate = raw_input("Please enter when your card expires (mm-yyyy):\n")
-        if validator.validateEndDate(endDate) is not None:
-            isValid = True
-        else:
-            print("Incorrect Date Format")
-    array = [cardNumber, cardSecurity, endDate]
-    return array
-
-#Registers a new customer. Also a bunch of prompts for user input. Inserts into the customer table and credit card table         
-###########################################################################################################################    
+#Registers a new customer. Also a bunch of prompts for user input. Inserts into the customer table and credit card table            
 def customerRegistration(connection):
     isValid = False
     # CREATE PASSWORD
     while isValid == False:
-        password = raw_input("\nPlease create a password:\n")
-        if validator.validatePass(password):
-            isValid = True
-        else:
-            print("Passwords must be longer than 5 characters and contain a number")
+		password = raw_input("\nPlease create a password:\n")
+		if validator.validatePass(password):
+			password = pbkdf2_sha256.hash(password)
+			isValid = True
+		else:
+			print("Passwords must be longer than 5 characters and contain a number")
 
     # CREATE FIRST NAME       
     isValid = False
@@ -107,7 +79,7 @@ def customerRegistration(connection):
         if validator.validatePhone(phone):
             isValid = True
         else:
-            print("Please enter a valid phne number. Format is: '(Xxx) Xxx-xxxx'. 'X' is any number between 1 and 9 and 'x' is any number between 0 and 9.")
+            print("Please enter a valid phone number. Format is: '(Xxx) Xxx-xxxx'. 'X' is any number between 1 and 9 and 'x' is any number between 0 and 9.")
 
     # CREATE EMAIL
     isValid = False
@@ -119,7 +91,7 @@ def customerRegistration(connection):
             print("Please enter a valid email address")
 
     # CREATE CREDIT CARD (CALLS ADD CARD)
-    cardInfo = addCard()
+    cardInfo = card.addCard()
 
     # ASSEMBLES DATA AND INSERTS IT INTO THE CUSTOMER TABLE AND CREDIT CARDS TABLE        
     data_customer = (password,last,first,addr,city,state,zipCode,phone,email)

@@ -1,12 +1,12 @@
-import validator
-import queries
+import utils.validator as validator
+import utils.queries as queries
 from datetime import date
 
 # Make a purchase.
 # Will ask user which store to buy an item (purchaseInput) from, quantity of item, and where they want the bill to be billed to
-def purchase(connection, custID, inID, purchaseInput):
+def purchase(connection, custID, purchaseInput):
 
-    # get neccessary info
+    	# get neccessary info
 	data_card = (custID,)
 	data_purchase = (purchaseInput,)
 	stores = queries.getStoresWithItem(connection, data_purchase)

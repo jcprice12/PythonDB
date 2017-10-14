@@ -1,6 +1,6 @@
 import mysql.connector
 from mysql.connector import errorcode
-import createUser
+import prompts.card as card
 
 def printClothesInOrder(connection, order):
 	cursor = connection.cursor()
@@ -14,6 +14,23 @@ def printClothesInOrder(connection, order):
 	    	print("{0:15}{1:20}{2:20}{3:8}{4:10}{5:15}".format("Clothing ID", "Name", "Type", "Season", "Price", "Material"))
 	    	for (ClothingID, Name, Type, Season, Price, Material) in clothing:
 	    		print("{0:15}{1:20}{2:20}{3:8}${4:10}{5:15}".format(str(ClothingID), Name, Type, Season, str(Price), Material))
+		return True
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		cursor.close()
+		return False
+
+def printOrders(connection, data):
+	cursor = connection.cursor()
+	try:
+		SQL = """select InvoiceID, InvoiceLineID, ClothingID, Name, SoldFor, Credit
+                         from (JohmpsonClothing.Clothing natural join JohmpsonClothing.InvoiceLine) natural join JohmpsonClothing.Invoice
+                         where CustomerID = %s"""
+		cursor.execute(SQL, data)
+		print("{0:11}{1:10}{2:12}{3:20}{4:10}{5:32}".format("Invoice ID", "Line ID", "Clothing ID", "Name", "Sold For", "Credit Card"))
+            	for (InvoiceID, InvoiceLineId, ClothingId, Name, SoldFor, Credit) in cursor:
+                	print("{0:11}{1:10}{2:12}{3:20}${4:9}{5:32}".format(str(InvoiceID), str(InvoiceLineId), str(ClothingId), Name, str(SoldFor), Credit))
+		cursor.close()
 		return True
 	except mysql.connector.Error as err:
 		print("Something went wrong: {}".format(err))
@@ -278,7 +295,7 @@ def deleteAndAddCustomerCard(connection, data, cards):
 		cardSQL = (""" insert into JohmpsonClothing.CreditCards (CardNumber, SecurityCode, Customer, ValidDate, ExpirationDate)
                         Values (%s,%s,%s,%s,%s)""")
 		print("You must now enter a new credit card")
-		cardInfo = createUser.addCard()
+		cardInfo = card.addCard()
 		card_data = (cardInfo[0], cardInfo[1],custID, cardInfo[2], cardInfo[3])
 		try:
 			cursor.execute(cardSQL,card_data)
@@ -320,23 +337,31 @@ def placeOrder(connection, data_quantity, data_invoice, lineInfo):
 				values (%s,%s,%s,%s,%s,%s)""")
 	invoiceLineSQL = ("""insert into JohmpsonClothing.InvoiceLine (InvoiceID, ClothingID, Quantity, SoldFor, Credit)
 				values (%s,%s,%s,%s,%s)""")
+	reduceInventorySQL = ("""update StoresClothing set Inventory = (Inventory - %s) where ClothingID = %s and StoreID = %s""")
 
 	inventory = 0
-	print("Hey")
 	try:
 		cursor.execute(determineQuantitySQL, data_quantity)
 		inventory = cursor.fetchone()
+		inventory = inventory[0]
 	except mysql.connector.Error as err:
 		print("Something went wrong: {}".format(err))
 		connection.rollback()
 		cursor.close()
 		return None
 
-	if inventory < lineInfo[2]:
+	if inventory < lineInfo[1]:
 		print("There is not enough inventory in the store to place this order")
 		return None
-	print("You")
 
+	
+	try:
+		cursor.execute(reduceInventorySQL, (lineInfo[1], data_quantity[0], data_quantity[1]))
+	except mysql.connector.Error as err:
+		print("Something went wrong: {}".format(err))
+		connection.rollback()
+		cursor.close()
+		return None	
 
 	try:
 		cursor.execute(invoiceSQL, data_invoice)
@@ -349,8 +374,6 @@ def placeOrder(connection, data_quantity, data_invoice, lineInfo):
 	invoiceId = cursor.lastrowid
 	data_line = (invoiceId, lineInfo[0], lineInfo[1], lineInfo[2], lineInfo[3])
 
-	print("Stuff")
-
 	try:
 		cursor.execute(invoiceLineSQL, data_line)
 	except mysql.connector.Error as err:
@@ -362,13 +385,6 @@ def placeOrder(connection, data_quantity, data_invoice, lineInfo):
 	connection.commit()
         cursor.close()
 	return invoiceId
-	
-
-		
-		
-
-
-
 
 
 

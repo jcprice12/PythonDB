@@ -1,9 +1,9 @@
 import purchase
-import queries
+import utils.queries as queries
 
 #Function that will take user input on how to order our clothing articles (for print-out)
 #After it calls orderBy, this function will call purchase if input is valid. Input will be the clothing ID of the article of clothing you want to buy
-def viewAndPlace(connection, custID, inID):
+def viewAndPlace(connection, custID):
 	customerInteracting = True                     
 	while customerInteracting == True:
 		user_input = raw_input("Order by: ID No (0), Name (1), Type (2), Season (3), Price (4), Material (5)\n")
@@ -38,6 +38,6 @@ def viewAndPlace(connection, custID, inID):
 		if article == None:
 			print("Could not select clothing item to purchase")
 		else:
-			purchase.purchase(connection, custID, inID, article[0])
+			purchase.purchase(connection, custID, article[0])
 
 

@@ -1,13 +1,14 @@
-import validator
+from passlib.hash import pbkdf2_sha256
+import utils.validator as validator
 import createUser
-import queries
+import utils.queries as queries
 
 def checkPassword(compare):
     while True:
 		secret = raw_input("Enter your password. Type '1' to quit\n")
 		if secret == "1":
 			return False
-		elif secret == compare:
+		elif pbkdf2_sha256.verify(secret, compare):
 			return True
 		else:
 			print("Sorry, wrong password")
